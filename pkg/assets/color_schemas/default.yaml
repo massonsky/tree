@@ -1,0 +1,14 @@
+# Default color scheme
+terminal:
+  directory: "cyan:bold"
+  file: "white"
+  symlink: "magenta"
+  size: "yellow"
+  hidden: "gray"
+
+image:
+  background: "#f8f8f8"
+  text: "#333333"
+  directory: "#1e88e5"
+  file: "#43a047"
+  border: "#e0e0e0"
