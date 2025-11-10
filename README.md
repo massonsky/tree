@@ -2,7 +2,7 @@
 
 `three` — это мощный кроссплатформенный CLI-инструмент для отображения структуры папок с поддержкой **интерактивной навигации**, **гибкого экспорта** и **красивой визуализации** — намного шире возможностей классической утилиты `tree`.
 
-![Демонстрация three](https://raw.githubusercontent.com/massonsky/three/main/assets/images.png)
+![three demo](https://raw.githubusercontent.com/massonsky/three/main/assets/image.png)
 
 ---
 
@@ -92,9 +92,3 @@ three --export report.png --font /System/Library/Fonts/Menlo.ttc .
 Распространяется под лицензией **MIT**. Подробнее — в файле `LICENSE`.
 
 ---
-
-> **«three превращает исследование файловой системы в визуальное удовольствие.»**  
-> — Ваш будущий «я», после знакомства с этим инструментом
-
-[![CI/CD](https://github.com/massonsky/three/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/massonsky/three/actions)  
-[![Go Report Card](https://goreportcard.com/badge/github.com/massonsky/three)](https://goreportcard.com/report/github.com/massonsky/three)
