@@ -42,26 +42,51 @@ func main() {
 	app := &cli.App{
 		Name:  "three",
 		Usage: "📁 Advanced directory tree visualizer",
-		Action: func(c *cli.Context) error {
-			path := "."
-			if c.Args().Present() {
-				path = c.Args().First()
-			}
+		Commands: []*cli.Command{
+			{
+				Name:  "config",
+				Usage: "manage configuration",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "edit",
+						Usage: "edit configuration in $EDITOR",
+						Action: func(c *cli.Context) error {
+							newCfg, err := config.EditConfigInteractive()
+							if err != nil {
+								logger.Errorf("Config edit failed: %v", err)
+								return cli.Exit(err.Error(), 1)
+							}
+							logger.Infof("Config updated. New default font: %s", newCfg.DefaultFontPath)
+							return nil
+						},
+					},
+				},
+			},
+			{
+				Name:  "run",
+				Usage: "render a directory tree",
+				Action: func(c *cli.Context) error {
+					path := "."
+					if c.Args().Present() {
+						path = c.Args().First()
+					}
 
-			logger.Infof("Processing directory: %s", path)
+					logger.Infof("Processing directory: %s", path)
 
-			// Используем настройки из конфига
-			entries, err := tree.WalkDir(path, appConfig)
-			if err != nil {
-				logger.Errorf("WalkDir failed: %v", err)
-				return cli.Exit(err.Error(), 1)
-			}
+					// Используем настройки из конфига
+					entries, err := tree.WalkDir(path, appConfig)
+					if err != nil {
+						logger.Errorf("WalkDir failed: %v", err)
+						return cli.Exit(err.Error(), 1)
+					}
 
-			logger.Debugf("Found %d entries", len(entries))
-			renderer.PrintTree(entries, appConfig)
+					logger.Debugf("Found %d entries", len(entries))
+					renderer.PrintTree(entries, appConfig)
 
-			logger.Infof("Successfully rendered tree for %s", path)
-			return nil
+					logger.Infof("Successfully rendered tree for %s", path)
+					return nil
+				},
+			},
 		},
 	}
 

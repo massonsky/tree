@@ -2,7 +2,9 @@ package config
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"tree/pkg/assets"
 
 	"gopkg.in/yaml.v3"
@@ -108,4 +110,85 @@ func ensureDefaultFiles(fontsDir, colorSchemasDir string) error {
 	}
 
 	return nil
+}
+
+// UpdateConfig сохраняет переданную конфигурацию в файл конфигурации
+func UpdateConfig(cfg *Config) error {
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(GetConfigFile(), data, 0644)
+}
+
+// EditConfigInteractive открывает конфиг в внешнем редакторе (ENV $EDITOR) и
+// сохраняет изменения обратно в файл конфигурации после валидации YAML.
+// Возвращает обновлённую конфигурацию или ошибку.
+func EditConfigInteractive() (*Config, error) {
+	// Убедимся, что конфиг и директории созданы
+	if _, err := EnsureConfig(); err != nil {
+		return nil, err
+	}
+
+	// Прочитаем текущий конфиг
+	data, err := os.ReadFile(GetConfigFile())
+	if err != nil {
+		return nil, err
+	}
+
+	// Создадим временный файл с текущим конфигом
+	tmp, err := os.CreateTemp("", "tree-config-*.yaml")
+	if err != nil {
+		return nil, err
+	}
+	tmpPath := tmp.Name()
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+		return nil, err
+	}
+	_ = tmp.Close()
+
+	// Выберем редактор
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		if runtime.GOOS == "windows" {
+			editor = "notepad"
+		} else {
+			editor = "vi"
+		}
+	}
+
+	// Откроем редактор и дождёмся его завершения
+	cmd := exec.Command(editor, tmpPath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		_ = os.Remove(tmpPath)
+		return nil, err
+	}
+
+	// Прочитаем изменённый файл
+	newData, err := os.ReadFile(tmpPath)
+	if err != nil {
+		_ = os.Remove(tmpPath)
+		return nil, err
+	}
+
+	// Валидация YAML
+	var newCfg Config
+	if err := yaml.Unmarshal(newData, &newCfg); err != nil {
+		_ = os.Remove(tmpPath)
+		return nil, err
+	}
+
+	// Сохраним конфиг
+	if err := UpdateConfig(&newCfg); err != nil {
+		_ = os.Remove(tmpPath)
+		return nil, err
+	}
+
+	_ = os.Remove(tmpPath)
+	return &newCfg, nil
 }
