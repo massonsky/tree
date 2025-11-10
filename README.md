@@ -2,8 +2,7 @@
 
 `three` — это мощный кроссплатформенный CLI-инструмент для отображения структуры папок с поддержкой **интерактивной навигации**, **гибкого экспорта** и **красивой визуализации** — намного шире возможностей классической утилиты `tree`.
 
-![three demo](https://raw.githubusercontent.com/massonsky/three/main/assets/image.png)
-
+![three demo](https://raw.githubusercontent.com/massonsky/tree/blob/master/assets/image.png)
 ---
 
 ## ✨ Возможности
