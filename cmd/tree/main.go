@@ -31,6 +31,8 @@ func getFormatFromExtension(filename string) exporter.Format {
 		return exporter.FormatTXT
 	case ".json":
 		return exporter.FormatJSON
+	case ".svg": // Добавили SVG
+		return exporter.FormatSVG
 	default:
 		if strings.Contains(strings.ToLower(filename), "json") {
 			return exporter.FormatJSON
@@ -42,6 +44,14 @@ func getFormatFromExtension(filename string) exporter.Format {
 // processDirectory — основная логика обработки директории
 func processDirectory(ctx context.Context, c *cli.Context, path string) error {
 	logger.Infof("Processing directory: %s", path)
+
+	// Применяем флаги в конфиг ДО старта обхода
+	if c.IsSet("depth") {
+		appConfig.MaxDepth = c.Int("depth")
+	}
+	if c.IsSet("ignore") {
+		appConfig.IgnorePatterns = c.StringSlice("ignore")
+	}
 
 	showProgress := !c.Bool("no-progress")
 	walkResult, err := tree.WalkDirWithContext(ctx, path, appConfig, showProgress)
@@ -60,7 +70,12 @@ func processDirectory(ctx context.Context, c *cli.Context, path string) error {
 	if exportPath := c.String("export"); exportPath != "" {
 		format := getFormatFromExtension(exportPath)
 		config := make(map[string]interface{})
+		config["templates_dir"] = appConfig.TemplatesDir
+		config["template"] = c.String("template")
 
+		if c.String("font") != "" {
+			config["font_path"] = c.String("font")
+		}
 		if fontPath := c.String("font"); fontPath != "" {
 			config["font_path"] = fontPath
 		}
@@ -161,6 +176,11 @@ func main() {
 			Name:  "color",
 			Usage: "Colorize output: auto, always, never",
 			Value: "auto",
+		},
+		&cli.StringFlag{
+			Name:  "template",
+			Usage: "Template name for export (default: default)",
+			Value: "default",
 		},
 	}
 

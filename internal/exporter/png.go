@@ -12,13 +12,6 @@ import (
 	"github.com/golang/freetype/truetype"
 )
 
-const (
-	imageWidth = 1200
-	lineHeight = 22
-	padding    = 20
-	fontSize   = 16
-)
-
 type PNGExporter struct {
 	fontPath string
 }

@@ -18,6 +18,7 @@ const (
 	FormatPNG  Format = "png"
 	FormatTXT  Format = "txt"
 	FormatJSON Format = "json"
+	FormatSVG  Format = "svg" // Добавили SVG
 )
 
 // New создает экспортер по формату
@@ -29,6 +30,8 @@ func New(format Format, config map[string]interface{}) (Exporter, error) {
 		return &TextExporter{}, nil
 	case FormatJSON:
 		return &JSONExporter{}, nil
+	case FormatSVG:
+		return &SVGExporter{}, nil
 	default:
 		return nil, ErrUnsupportedFormat
 	}

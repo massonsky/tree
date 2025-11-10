@@ -24,6 +24,8 @@ type Config struct {
 	ShowHiddenFiles bool     `yaml:"show_hidden_files"`
 	MaxDepth        int      `yaml:"max_depth"`
 	IgnorePatterns  []string `yaml:"ignore_patterns"`
+	TemplatesDir    string   `yaml:"templates_dir"`
+	CurrentTemplate string   `yaml:"current_template"`
 }
 
 // DefaultConfig возвращает конфигурацию по умолчанию
@@ -35,6 +37,8 @@ func DefaultConfig() *Config {
 		ImageHeight:     0, // 0 = автоматический расчет
 		ShowHiddenFiles: false,
 		MaxDepth:        10,
+		TemplatesDir:    filepath.Join(GetAssetsDir(), "templates"),
+		CurrentTemplate: "default",
 	}
 }
 
@@ -89,7 +93,24 @@ func EnsureConfig() (*Config, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-
+	templatesDir := cfg.TemplatesDir
+	// Установите стандартный шаблон
+	templatePath := filepath.Join(templatesDir, "default.yaml")
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		defaultTemplate := `# Default tree template
+	prefix:
+	vertical: "│"
+	corner: "└──"
+	branch: "├──"
+	icons:
+	file: ""
+	dir: ""
+	colors:
+	file: "#000000"
+	dir: "#1e88e5"
+	`
+		os.WriteFile(templatePath, []byte(defaultTemplate), 0644)
+	}
 	return &cfg, nil
 }
 

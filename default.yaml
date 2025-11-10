@@ -1,0 +1,12 @@
+# Default tree template
+	prefix:
+	vertical: "│"
+	corner: "└──"
+	branch: "├──"
+	icons:
+	file: ""
+	dir: ""
+	colors:
+	file: "#000000"
+	dir: "#1e88e5"
+	
