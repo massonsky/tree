@@ -1,0 +1,28 @@
+# Обязательно: укажите версию (проверьте через `golangci-lint --version`)
+version: "1.59"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - goconst
+    - godot
+    - gocyclo
+
+# Настройки фильтрации проблем
+issues:
+  # Отключаем стандартные исключения (если нужно)
+  # (removed `exclude-use-default` — some YAML schema validators don't accept it)
+
+  # Максимум проблем
+  max-issues-per-linter: 0

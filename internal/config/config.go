@@ -21,8 +21,9 @@ type Config struct {
 	ImageHeight int `yaml:"image_height"`
 
 	// CLI-настройки
-	ShowHiddenFiles bool `yaml:"show_hidden_files"`
-	MaxDepth        int  `yaml:"max_depth"`
+	ShowHiddenFiles bool     `yaml:"show_hidden_files"`
+	MaxDepth        int      `yaml:"max_depth"`
+	IgnorePatterns  []string `yaml:"ignore_patterns"`
 }
 
 // DefaultConfig возвращает конфигурацию по умолчанию

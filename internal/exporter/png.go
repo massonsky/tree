@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"strings"
 
 	"tree/assets"
 	"tree/internal/types"
@@ -18,12 +17,6 @@ const (
 	lineHeight = 22
 	padding    = 20
 	fontSize   = 16
-)
-const (
-	vLine   = "|"
-	hLine   = "-"
-	cornerR = "+--"
-	cornerB = "`--"
 )
 
 type PNGExporter struct {
@@ -129,28 +122,6 @@ func (e *PNGExporter) Export(w io.Writer, entries []types.Entry) error {
 	}
 
 	return dc.EncodePNG(w)
-}
-
-// buildTreePrefix формирует префикс для дерева (├──, └──, │   )
-func buildTreePrefix(depth int, isLast bool) string {
-	if depth <= 0 {
-		return ""
-	}
-
-	parts := make([]string, 0, depth)
-
-	// Строим от корня к текущему уровню
-	for d := 1; d < depth; d++ {
-		parts = append(parts, "│   ")
-	}
-
-	if isLast {
-		parts = append(parts, "└── ")
-	} else {
-		parts = append(parts, "├── ")
-	}
-
-	return strings.Join(parts, "")
 }
 
 func calculateImageHeight(entries []types.Entry) int {

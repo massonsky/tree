@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"os"
-	"time"
 
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/term"
@@ -29,10 +28,26 @@ func DefaultProgressBarConfig() ProgressBarConfig {
 
 // NewProgressBar создает настроенный прогресс-бар
 func NewProgressBar(max int64, description string, cfg ProgressBarConfig) *progressbar.ProgressBar {
+	if max <= 0 {
+		// Indeterminate mode
+		return progressbar.NewOptions(0,
+			progressbar.OptionSetDescription(description),
+			progressbar.OptionSetWriter(os.Stdout),
+			progressbar.OptionShowCount(),
+			progressbar.OptionSetWidth(10),
+			progressbar.OptionFullWidth(),
+			progressbar.OptionSpinnerType(14),
+		)
+	}
+
 	options := []progressbar.Option{
 		progressbar.OptionSetDescription(description),
-		progressbar.OptionSetWidth(10),
-		progressbar.OptionThrottle(65 * time.Millisecond),
+		progressbar.OptionSetWidth(15),
+		progressbar.OptionShowCount(),
+		progressbar.OptionShowIts(),
+		progressbar.OptionSetPredictTime(true),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetRenderBlankState(true),
 		progressbar.OptionOnCompletion(func() {
 			if cfg.EnableColors {
 				print("\033[32m✓\033[0m Done!\n")
@@ -43,7 +58,9 @@ func NewProgressBar(max int64, description string, cfg ProgressBarConfig) *progr
 		progressbar.OptionSpinnerType(14),
 		progressbar.OptionFullWidth(),
 	}
-
+	if cfg.ShowBytes {
+		options = append(options, progressbar.OptionShowBytes(true))
+	}
 	if cfg.EnableColors {
 		options = append(options, progressbar.OptionSetTheme(progressbar.Theme{
 			Saucer:        "█",

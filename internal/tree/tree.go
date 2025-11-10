@@ -11,20 +11,21 @@ import (
 	"tree/internal/config"
 	"tree/internal/logger"
 	"tree/internal/metrics"
-	_type "tree/internal/types"
+	"tree/internal/types"
 	"tree/internal/ui"
 
+	"github.com/gobwas/glob"
 	"github.com/schollz/progressbar/v3"
-	// Новый импорт
 )
 
+// WalkDirWithContext обходит директорию с прогрессом в реальном времени
 func WalkDirWithContext(
 	ctx context.Context,
 	root string,
 	cfg *config.Config,
 	progressEnabled bool,
 ) (WalkResult, error) {
-	startTime := time.Now() // ← Теперь используется!
+	startTime := time.Now()
 	logger.Debugf("Starting directory walk with progress: %t", progressEnabled)
 
 	root, err := filepath.Abs(root)
@@ -32,50 +33,29 @@ func WalkDirWithContext(
 		return WalkResult{}, err
 	}
 
-	// Считаем общее количество файлов для прогресс-бара
-	totalFiles := 0
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		if path != root {
-			totalFiles++
-		}
-		return nil
-	})
-
-	if err != nil {
-		logger.Errorf("Failed to count files: %v", err)
-		return WalkResult{}, err
-	}
-
-	logger.Debugf("Total files to process: %d", totalFiles)
-
+	// НЕ считаем общее количество файлов — экономим время!
 	var bar *progressbar.ProgressBar
 	if progressEnabled {
-		bar = ui.NewProgressBar(
-			int64(totalFiles),
-			"Scanning files",
-			ui.DefaultProgressBarConfig(),
-		)
+		// Indeterminate mode: max = -1 или 0
+		bar = ui.NewProgressBar(-1, "Scanning files", ui.DefaultProgressBarConfig())
 		defer bar.Finish()
 		ctx = ui.WithCancel(ctx, bar)
 	}
 
-	var entries []_type.Entry
+	var entries []types.Entry
 
 	// Добавляем корневой элемент
 	rootInfo, err := os.Stat(root)
 	if err != nil {
 		return WalkResult{}, err
 	}
-	entries = append(entries, _type.Entry{
+	entries = append(entries, types.Entry{
 		Path:  filepath.Base(root),
 		Info:  rootInfo,
 		Depth: 0,
 	})
 
-	// Основной обход
+	// Основной обход (один проход!)
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -97,6 +77,7 @@ func WalkDirWithContext(
 			return err
 		}
 
+		// Скрытые файлы
 		if !cfg.ShowHiddenFiles && strings.HasPrefix(d.Name(), ".") {
 			if d.IsDir() {
 				return filepath.SkipDir
@@ -104,9 +85,9 @@ func WalkDirWithContext(
 			return nil
 		}
 
+		// Глубина
 		relPath, _ := filepath.Rel(root, path)
 		depth := len(strings.Split(relPath, string(filepath.Separator)))
-
 		if cfg.MaxDepth > 0 && depth > cfg.MaxDepth {
 			if d.IsDir() {
 				return filepath.SkipDir
@@ -114,13 +95,30 @@ func WalkDirWithContext(
 			return nil
 		}
 
-		entries = append(entries, _type.Entry{
+		// Игнорирование
+		relPathForMatch := filepath.ToSlash(relPath)
+		for _, pattern := range cfg.IgnorePatterns {
+			g, err := glob.Compile(pattern)
+			if err != nil {
+				continue
+			}
+			if g.Match(relPathForMatch) {
+				if d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
+
+		// Добавляем запись
+		entries = append(entries, types.Entry{
 			Path:  relPath,
 			Info:  info,
 			Depth: depth,
 		})
 
-		if progressEnabled {
+		// Обновляем прогресс в реальном времени
+		if progressEnabled && bar != nil {
 			bar.Add(1)
 		}
 
@@ -132,7 +130,6 @@ func WalkDirWithContext(
 		return WalkResult{}, err
 	}
 
-	// Собираем метрики
 	mets := metrics.Collect(entries, startTime)
 	logger.Infof("Found %d entries in %s", len(entries)-1, root)
 
@@ -142,8 +139,7 @@ func WalkDirWithContext(
 	}, nil
 }
 
-// WalkDir совместимость (возвращает только entries)
-func WalkDir(root string, cfg *config.Config) ([]_type.Entry, error) {
+func WalkDir(root string, cfg *config.Config) ([]types.Entry, error) {
 	result, err := WalkDirWithContext(context.Background(), root, cfg, true)
 	if err != nil {
 		return nil, err

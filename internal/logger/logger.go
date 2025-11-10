@@ -155,5 +155,9 @@ func (l *Logger) log(level Level, format string, v ...interface{}) {
 	// Добавляем префикс уровня и временной метки
 	prefix := fmt.Sprintf("[%s] [%s] ", time.Now().Format("15:04:05"), level.String())
 	message := fmt.Sprintf(format, v...)
-	l.Logger.Output(3, prefix+message)
+	if err := l.Logger.Output(3, prefix+message); err != nil {
+		// Если запись логов по какой-то причине не удалась,
+		// печатаем ошибку в stderr, чтобы не терять информацию.
+		fmt.Fprintf(os.Stderr, "logger output error: %v\n", err)
+	}
 }

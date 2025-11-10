@@ -15,6 +15,7 @@ import (
 	"tree/internal/logger"
 	"tree/internal/renderer"
 	"tree/internal/tree"
+	"tree/internal/tui"
 
 	"github.com/urfave/cli/v2"
 )
@@ -52,7 +53,9 @@ func processDirectory(ctx context.Context, c *cli.Context, path string) error {
 		logger.Errorf("WalkDir failed: %v", err)
 		return cli.Exit(err.Error(), 1)
 	}
-
+	if c.IsSet("ignore") {
+		appConfig.IgnorePatterns = c.StringSlice("ignore")
+	}
 	// ЭКСПОРТ В ФАЙЛ
 	if exportPath := c.String("export"); exportPath != "" {
 		format := getFormatFromExtension(exportPath)
@@ -144,6 +147,21 @@ func main() {
 			Usage:   "Hide scan metrics",
 			Value:   false,
 		},
+		&cli.IntFlag{
+			Name:  "depth",
+			Usage: "Max depth of directory tree",
+			Value: 10, // значение по умолчанию
+		},
+		&cli.StringSliceFlag{
+			Name:    "ignore",
+			Aliases: []string{"I"},
+			Usage:   "Ignore paths matching pattern (can be used multiple times)",
+		},
+		&cli.StringFlag{
+			Name:  "color",
+			Usage: "Colorize output: auto, always, never",
+			Value: "auto",
+		},
 	}
 
 	app := &cli.App{
@@ -188,6 +206,31 @@ func main() {
 						path = c.Args().First()
 					}
 					return processDirectory(ctx, c, path)
+				},
+			},
+			{
+				Name:    "interactive",
+				Aliases: []string{"i"},
+				Usage:   "interactive tree explorer",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "no-progress",
+						Aliases: []string{"np"},
+						Usage:   "Disable progress bar during initial scan",
+						Value:   false,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					path := "."
+					if c.Args().Present() {
+						path = c.Args().First()
+					}
+
+					// Обновляем MaxDepth для интерактивного режима (больше глубины)
+					appConfig.MaxDepth = 20
+
+					logger.Infof("Starting interactive mode for %s", path)
+					return tui.Run(ctx, appConfig, path)
 				},
 			},
 		},

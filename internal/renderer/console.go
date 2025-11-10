@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -18,10 +19,15 @@ import (
 
 // PrintTree выводит структуру директории в консоль
 func PrintTree(entries []_type.Entry, cfg *config.Config) {
+	PrintTreeToWriter(os.Stdout, entries, cfg)
+}
+
+// PrintTreeToWriter выводит структуру директории в указанный writer (например, stdin pager'а).
+func PrintTreeToWriter(w io.Writer, entries []_type.Entry, cfg *config.Config) {
 	logger.Debugf("Rendering tree with %d entries", len(entries))
 
 	if len(entries) == 0 {
-		color.Red("No files or directories found")
+		color.New(color.FgRed).Fprintln(w, "No files or directories found")
 		logger.Warn("No entries to render")
 		return
 	}
@@ -40,17 +46,29 @@ func PrintTree(entries []_type.Entry, cfg *config.Config) {
 	// Выводим каждый элемент
 	for i, entry := range entries {
 		isLast := (i == len(entries)-1)
-		printEntry(entry, isLast, width, maxDepth)
+		printEntryToWriter(w, entry, isLast, width, maxDepth)
 	}
 
 	if cfg.LogLevel == "debug" {
-		color.Yellow("Debug mode: showing hidden files")
+		color.New(color.FgYellow).Fprintln(w, "Debug mode: showing hidden files")
 		logger.Debug("Debug mode enabled")
+	}
+}
+func shouldUseColor(mode string) bool {
+	switch mode {
+	case "never":
+		return false
+	case "always":
+		return true
+	case "auto":
+		return term.IsTerminal(int(os.Stdout.Fd()))
+	default:
+		return term.IsTerminal(int(os.Stdout.Fd()))
 	}
 }
 
 // printEntry выводит один элемент дерева с отступами
-func printEntry(entry _type.Entry, isLast bool, width int, maxDepth int) {
+func printEntryToWriter(w io.Writer, entry _type.Entry, isLast bool, width int, maxDepth int) {
 	// Формируем префикс для отступов
 	prefix := ""
 	if entry.Depth > 0 {
@@ -94,7 +112,7 @@ func printEntry(entry _type.Entry, isLast bool, width int, maxDepth int) {
 	}
 
 	// Выводим с цветовым выделением
-	style.Println(line)
+	style.Fprintln(w, line)
 	// В конце функции добавляем логирование
 	logger.Tracef("Rendered entry: %s (depth: %d, size: %d)",
 		entry.Path, entry.Depth, entry.Info.Size())
