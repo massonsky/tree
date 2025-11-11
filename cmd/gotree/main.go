@@ -41,6 +41,44 @@ func getFormatFromExtension(filename string) exporter.Format {
 	}
 }
 
+// parseIgnorePatternsFromSlice нормализует значения --ignore, поддерживает
+// одиночные элементы, пробельное разделение и список в квадратных скобках
+func parseIgnorePatternsFromSlice(raw []string) []string {
+	var out []string
+	for _, item := range raw {
+		s := strings.TrimSpace(item)
+		s = strings.TrimPrefix(s, "[")
+		s = strings.TrimSuffix(s, "]")
+
+		if strings.Contains(s, ",") {
+			parts := strings.Split(s, ",")
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					out = append(out, p)
+				}
+			}
+			continue
+		}
+
+		if strings.Contains(s, " ") {
+			parts := strings.Fields(s)
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					out = append(out, p)
+				}
+			}
+			continue
+		}
+
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // processDirectory — основная логика обработки директории
 func processDirectory(ctx context.Context, c *cli.Context, path string) error {
 	logger.Infof("Processing directory: %s", path)
@@ -50,7 +88,7 @@ func processDirectory(ctx context.Context, c *cli.Context, path string) error {
 		appConfig.MaxDepth = c.Int("depth")
 	}
 	if c.IsSet("ignore") {
-		appConfig.IgnorePatterns = c.StringSlice("ignore")
+		appConfig.IgnorePatterns = parseIgnorePatternsFromSlice(c.StringSlice("ignore"))
 	}
 
 	showProgress := !c.Bool("no-progress")
@@ -64,7 +102,7 @@ func processDirectory(ctx context.Context, c *cli.Context, path string) error {
 		return cli.Exit(err.Error(), 1)
 	}
 	if c.IsSet("ignore") {
-		appConfig.IgnorePatterns = c.StringSlice("ignore")
+		appConfig.IgnorePatterns = parseIgnorePatternsFromSlice(c.StringSlice("ignore"))
 	}
 	// ЭКСПОРТ В ФАЙЛ
 	if exportPath := c.String("export"); exportPath != "" {
