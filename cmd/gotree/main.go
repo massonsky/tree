@@ -1,15 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 
+	"github.com/atotto/clipboard"
 	"github.com/massonsky/gotree/internal/config"
 	"github.com/massonsky/gotree/internal/exporter"
 	"github.com/massonsky/gotree/internal/logger"
@@ -140,7 +143,27 @@ func processDirectory(ctx context.Context, c *cli.Context, path string) error {
 	}
 
 	// ОБЫЧНЫЙ ВЫВОД В КОНСОЛЬ
-	renderer.PrintTree(walkResult.Entries, appConfig)
+	// Если флаг --add-to-clipboard установлен, рендерим в буфер и копируем в буфер обмена (ANSI-коды убираем),
+	// но также печатаем стандартный цветной вывод в консоль.
+	if c.Bool("add-to-clipboard") {
+		// печатаем в консоль
+		renderer.PrintTree(walkResult.Entries, appConfig)
+
+		// рендерим в буфер и копируем (без ANSI)
+		var buf bytes.Buffer
+		renderer.PrintTreeToWriter(&buf, walkResult.Entries, appConfig)
+
+		// удаляем ANSI-коды перед копированием
+		re := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+		plain := re.ReplaceAllString(buf.String(), "")
+		if err := clipboard.WriteAll(plain); err != nil {
+			logger.Errorf("Failed to copy to clipboard: %v", err)
+		} else {
+			logger.Info("Rendered tree copied to clipboard")
+		}
+	} else {
+		renderer.PrintTree(walkResult.Entries, appConfig)
+	}
 
 	if !c.Bool("no-metrics") {
 		renderer.PrintMetrics(walkResult.Metrics)
@@ -209,6 +232,11 @@ func main() {
 			Name:    "ignore",
 			Aliases: []string{"I"},
 			Usage:   "Ignore paths matching pattern (can be used multiple times)",
+		},
+		&cli.BoolFlag{
+			Name:  "add-to-clipboard",
+			Usage: "Copy rendered tree to clipboard after rendering",
+			Value: false,
 		},
 	}
 
