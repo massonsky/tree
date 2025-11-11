@@ -171,9 +171,19 @@ func PrintMetrics(m _metrics.Metrics) {
 	fmt.Printf("   Directories: %s\n", color.BlueString("%d", m.TotalDirs))
 	fmt.Printf("   Total Size:  %s\n", color.YellowString("%s", _metrics.FormatSize(m.TotalSize)))
 	fmt.Printf("   Max Depth:   %s\n", color.MagentaString("%d", m.MaxDepth))
-	fmt.Printf("   Duration:    %s\n", color.WhiteString("%s", m.ScanDuration.Truncate(time.Millisecond)))
+	// форматируем длительность с большей точностью для очень коротких измерений
+	var durationStr string
+	if m.ScanDuration < time.Millisecond {
+		durationStr = m.ScanDuration.String()
+	} else {
+		durationStr = m.ScanDuration.Truncate(time.Millisecond).String()
+	}
+	fmt.Printf("   Duration:    %s\n", color.WhiteString("%s", durationStr))
 
-	if m.FilesPerSecond > 0 {
+	// если скан был очень быстрым, не показываем вводящую в заблуждение скорость
+	if m.ScanDuration < 10*time.Millisecond {
+		fmt.Printf("   Performance: %s\n", color.CyanString("%s", "N/A (unstable, short duration)"))
+	} else if m.FilesPerSecond > 0 {
 		fmt.Printf("   Performance: %s\n", color.CyanString("%.1f files/sec", m.FilesPerSecond))
 	}
 }

@@ -28,18 +28,6 @@ func DefaultProgressBarConfig() ProgressBarConfig {
 
 // NewProgressBar создает настроенный прогресс-бар
 func NewProgressBar(max int64, description string, cfg ProgressBarConfig) *progressbar.ProgressBar {
-	if max <= 0 {
-		// Indeterminate mode
-		return progressbar.NewOptions(0,
-			progressbar.OptionSetDescription(description),
-			progressbar.OptionSetWriter(os.Stdout),
-			progressbar.OptionShowCount(),
-			progressbar.OptionSetWidth(10),
-			progressbar.OptionFullWidth(),
-			progressbar.OptionSpinnerType(14),
-		)
-	}
-
 	options := []progressbar.Option{
 		progressbar.OptionSetDescription(description),
 		progressbar.OptionSetWidth(15),

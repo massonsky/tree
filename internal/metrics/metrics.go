@@ -45,8 +45,22 @@ func Collect(entries []_type.Entry, startTime time.Time) Metrics {
 
 // String форматирует метрики для вывода
 func (m Metrics) String() string {
-	duration := m.ScanDuration.Truncate(time.Millisecond).String()
-	perf := fmt.Sprintf("%.1f files/sec", m.FilesPerSecond)
+	// Показываем длительность с более точной точностью для коротких замеров
+	var durationStr string
+	if m.ScanDuration < time.Millisecond {
+		// показываем полную точность (наносекунды) для очень коротких измерений
+		durationStr = m.ScanDuration.String()
+	} else {
+		durationStr = m.ScanDuration.Truncate(time.Millisecond).String()
+	}
+
+	// Если измерение очень короткое, не показываем вводящую в заблуждение скорость
+	var perf string
+	if m.ScanDuration < 10*time.Millisecond {
+		perf = "N/A (unstable, short duration)"
+	} else {
+		perf = fmt.Sprintf("%.1f files/sec", m.FilesPerSecond)
+	}
 
 	return fmt.Sprintf(`📊 Scan Metrics:
    Files:       %d
@@ -59,7 +73,7 @@ func (m Metrics) String() string {
 		m.TotalDirs,
 		FormatSize(m.TotalSize),
 		m.MaxDepth,
-		duration,
+		durationStr,
 		perf,
 	)
 }
